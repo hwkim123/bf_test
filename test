@@ -1,4 +1,4 @@
-set -euo pipefail
+#set -euo pipefail
 
 # === 기본 준비 ===
 if ! command -v docker >/dev/null 2>&1; then
