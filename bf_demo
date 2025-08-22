@@ -1,0 +1,32 @@
+import os
+from pybatfish.client.session import Session
+from pybatfish.datamodel.flow import HeaderConstraints
+
+# outputs 디렉토리 생성
+os.makedirs("outputs", exist_ok=True)
+
+# Batfish all-in-one 컨테이너 연결
+bf = Session(host="localhost")  # 9996/9997 포트 사용
+NETWORK_NAME = "example_network"
+SNAPSHOT_NAME = "example_snapshot"
+SNAPSHOT_PATH = os.path.abspath("batfish/networks/example")  # 예시 네트워크 경로
+
+# 네트워크 설정 및 스냅샷 초기화
+bf.set_network(NETWORK_NAME)
+bf.init_snapshot(SNAPSHOT_PATH, name=SNAPSHOT_NAME, overwrite=True)
+
+# 기본 질의 실행 및 CSV 저장
+parse_status = bf.q.fileParseStatus().answer().frame()
+parse_status.to_csv("outputs/parse_status.csv", index=False)
+
+node_props = bf.q.nodeProperties().answer().frame()
+node_props.to_csv("outputs/node_properties.csv", index=False)
+
+l3_edges = bf.q.layer3Edges().answer().frame()
+l3_edges.to_csv("outputs/l3_edges.csv", index=False)
+
+tr = bf.q.traceroute(startLocation="host1",
+                     headers=HeaderConstraints(dstIps="1.0.2.2")).answer().frame()
+tr.to_csv("outputs/traceroute.csv", index=False)
+
+print("[OK] PyBatfish 예시 실행 완료. outputs/*.csv 를 확인하세요.")
