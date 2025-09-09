@@ -1,5 +1,6 @@
 import dash
-from dash import html, dcc
+import dash_html_components as html
+import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -29,18 +30,14 @@ main_page_layout = html.Div(id='main-page', children=[
 
     # 버튼 영역
     html.Div(style={'position': 'relative', 'left': '7px'}, children=[
-
         html.Div([html.Button("Set Batfish Host", id="set-batfish-host-button", className="main_page_button")],
                  className="main_page_button_div"),
         html.Div([html.Button("Create/Delete Network", id="create-network-button", className="main_page_button")],
                  className="main_page_button_div"),
         html.Div([html.Button("Create/Delete Snapshot", id="create-snapshot-button", className="main_page_button")],
                  className="main_page_button_div"),
-        # select-network / snapshot 버튼 추가
-        html.Div([html.Button("Select Network", id="select-network-button", className="main_page_button")],
-                 className="main_page_button_div"),
-        html.Div([html.Button("Select Snapshot", id="select-snapshot-button", className="main_page_button")],
-                 className="main_page_button_div"),
+        html.Div([], className="main_page_button_div", id='select-network-div'),
+        html.Div([], className="main_page_button_div", id='select-snapshot-div'),
         html.Div([html.Button("Ask a Question", id="ask-question-button", className="main_page_button")],
                  className="main_page_button_div"),
 
@@ -51,8 +48,7 @@ main_page_layout = html.Div(id='main-page', children=[
                 children=[
                     dbc.CardBody(
                         dbc.Form([
-                            dbc.FormGroup([dbc.Input(id="batfish_host_input", value="", placeholder="Enter host")],
-                                          className="mr-3"),
+                            dbc.Input(id="batfish_host_input", value="", placeholder="Enter host"),
                             dbc.Button("Submit", id="set_batfish_host_submit_button", color="dark", outline=True,
                                        size="sm", style=dict(height="25px"))
                         ], inline=True)
@@ -69,6 +65,15 @@ main_page_layout = html.Div(id='main-page', children=[
                 children=[dbc.CardBody([dbc.Button("Submit", id="create_network_submit_button", color="primary")])]
             ),
             id="create-network-collapse"
+        ),
+
+        # Create Snapshot Collapse
+        dbc.Collapse(
+            dbc.Card(
+                className='main_page_card',
+                children=[dbc.CardBody([dbc.Button("Submit", id="create_snapshot_submit_button", color="primary")])]
+            ),
+            id="create-snapshot-collapse"
         ),
 
         dcc.Store(id='memory-output'),
@@ -92,6 +97,10 @@ main_page_layout = html.Div(id='main-page', children=[
             html.Div(id="main-page-tabs-content")
         ]),
     ]),
+
+    # Dummy divs for callbacks that expect them
+    html.Div([], id='select-network-snapshot-modal'),
+    html.Div([], id='create-network-form'),
 
     # Hidden outputs for storing data
     html.Div([
