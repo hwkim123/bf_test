@@ -1,5 +1,5 @@
-import dash_html_components as html
-import dash_core_components as dcc
+# layouts.py
+from dash import html, dcc
 import dash_bootstrap_components as dbc
 import dash_daq as daq
 
@@ -174,7 +174,6 @@ main_page_layout = html.Div(id='main-page', children=[
             html.P(id='num_of_traces', style={"display": "none"}),
         ]
     ),
-
     # Create Snapshot Modal
     html.Div(
         children=[
@@ -244,7 +243,6 @@ main_page_layout = html.Div(id='main-page', children=[
             )
         ],
     ),
-
     # Ask a Question Modal
     html.Div(
         children=[
@@ -272,7 +270,6 @@ main_page_layout = html.Div(id='main-page', children=[
             )
         ],
     ),
-
     # Change Configuration Modal
     html.Div(
         children=[
@@ -296,7 +293,6 @@ main_page_layout = html.Div(id='main-page', children=[
             )
         ],
     ),
-
     # ACL Configuration Modal
     html.Div(
         children=[
