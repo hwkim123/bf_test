@@ -64,15 +64,6 @@ def create_network_toggle_collapse(n, submit_button, is_open):
     return is_open
 
 
-@app.callback(
-    Output("create-network-collapse", "children"),
-    [Input("set_batfish_host_submit_button", "n_clicks")],
-)
-def dummy_return(n):
-    # 기존 create_network_children는 get_batfish_networks에서 처리됨
-    return dash.no_update
-
-
 # -------------------- Batfish Host --------------------
 @app.callback(
     Output("batfish-host-output", "children"),
@@ -126,9 +117,11 @@ def get_batfish_networks(n, value):
     ctx = dash.callback_context
     if not ctx.triggered or ctx.triggered[0]['prop_id'].split('.')[0] != "set_batfish_host_submit_button":
         raise PreventUpdate
+
     batfish = Batfish(value)
     options = [{'label': network, 'value': network} for network in batfish.get_existing_networks]
 
+    # Modal / Main dropdowns
     dropdown1 = dcc.Dropdown(
         id="select-network-button",
         placeholder='Select a Network',
@@ -145,6 +138,7 @@ def get_batfish_networks(n, value):
         value=None
     )
 
+    # Create / Delete network form
     create_delete_network_children = [
         dbc.Form([
             dbc.FormGroup([dbc.Input(id="create-network-form", value="", placeholder="New Network Name")]),
@@ -159,7 +153,6 @@ def get_batfish_networks(n, value):
 
 
 # -------------------- Snapshot / File Handling --------------------
-# (원본 그대로, 단 쉼표 제거 및 ctx.triggered None 처리)
 @app.callback(
     Output("select-snapshot-div", "children"),
     [Input("batfish_host_input", "value"),
