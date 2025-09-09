@@ -16,6 +16,7 @@ main_page_graph_tab_selected = dict(
 
 # 레이아웃 정의
 main_page_layout = html.Div(id='main-page', children=[
+
     # Title
     html.Div(
         id='title-bar-div',
@@ -28,14 +29,18 @@ main_page_layout = html.Div(id='main-page', children=[
 
     # 버튼 영역
     html.Div(style={'position': 'relative', 'left': '7px'}, children=[
+
         html.Div([html.Button("Set Batfish Host", id="set-batfish-host-button", className="main_page_button")],
                  className="main_page_button_div"),
         html.Div([html.Button("Create/Delete Network", id="create-network-button", className="main_page_button")],
                  className="main_page_button_div"),
         html.Div([html.Button("Create/Delete Snapshot", id="create-snapshot-button", className="main_page_button")],
                  className="main_page_button_div"),
-        html.Div([], className="main_page_button_div", id='select-network-div'),
-        html.Div([], className="main_page_button_div", id='select-snapshot-div'),
+        # select-network / snapshot 버튼 추가
+        html.Div([html.Button("Select Network", id="select-network-button", className="main_page_button")],
+                 className="main_page_button_div"),
+        html.Div([html.Button("Select Snapshot", id="select-snapshot-button", className="main_page_button")],
+                 className="main_page_button_div"),
         html.Div([html.Button("Ask a Question", id="ask-question-button", className="main_page_button")],
                  className="main_page_button_div"),
 
@@ -87,10 +92,6 @@ main_page_layout = html.Div(id='main-page', children=[
             html.Div(id="main-page-tabs-content")
         ]),
     ]),
-
-    # Dummy divs for callbacks that expect them
-    html.Div([], id='select-network-snapshot-modal'),
-    html.Div([], id='create-network-form'),
 
     # Hidden outputs for storing data
     html.Div([
