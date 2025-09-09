@@ -2,7 +2,7 @@ import dash_html_components as html
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_daq as daq
-import dash_cytoscape as cyto  # Cytoscape 사용 (callbacks에서 elements 참조 에러 방지)
+import dash_cytoscape as cyto
 
 main_page_graph_tab_selected = dict(
     padding='10px 20px',
@@ -13,533 +13,131 @@ main_page_graph_tab_selected = dict(
     fontWeight='bold',
 )
 
-main_page_layout = html.Div(
-    id='main-page',
-    children=[
-        # Title
-        html.Div(
-            id='title-bar-div',
-            children=[
-                html.Header(
-                    id='title-bar',
+main_page_layout = html.Div(id='main-page', children=[
+    # Title Bar
+    html.Div(
+        id='title-bar-div',
+        children=[html.Header(
+            id='title-bar',
+            children=[html.H1('Batfish Dashboard', id='title-bar-text')]
+        )]
+    ),
+    html.Br(),
+
+    # Buttons
+    html.Div(
+        style={'position': 'relative', 'left': '7px'},
+        children=[
+            html.Div([html.Button("Set Batfish Host", id="set-batfish-host-button", className="main_page_button")],
+                     className="main_page_button_div"),
+            html.Div([html.Button("Create/Delete Network", id="create-network-button", className="main_page_button")],
+                     className="main_page_button_div"),
+            html.Div([html.Button("Create/Delete Snapshot", id="create-snapshot-button", className="main_page_button")],
+                     className="main_page_button_div"),
+            html.Div([], className="main_page_button_div", id='select-network-div'),
+            html.Div([], className="main_page_button_div", id='select-snapshot-div'),
+            html.Div([html.Button("Ask a Question", id="ask-question-button", className="main_page_button")],
+                     className="main_page_button_div"),
+        ]
+    ),
+
+    # Host Form
+    dbc.Collapse(
+        dbc.Card(
+            className='main_page_card',
+            children=[dbc.CardBody(children=[
+                dbc.Form([
+                    dbc.FormGroup([dbc.Input(id="batfish_host_input", placeholder="Enter host", persistence=True)],
+                                  className="mr-3"),
+                    dbc.Button("Submit", id="set_batfish_host_submit_button", color="dark", outline=True, size="sm",
+                               style=dict(height="25px"))
+                ], inline=True)
+            ])]
+        ),
+        id="batfishhost-collapse"
+    ),
+
+    # Create Network Form (필수 id 추가)
+    dbc.Collapse(
+        dbc.Card(
+            className='main_page_card',
+            children=[dbc.CardBody(children=[
+                dbc.Form(
+                    id='create-network-form',
                     children=[
-                        html.H1('Batfish Dashboard', id='title-bar-text')
+                        dbc.Input(id='create_network_name', placeholder="Network Name"),
+                        dbc.Button("Submit", id='create_network_submit_button', color="primary")
                     ]
                 )
-            ]
+            ])]
         ),
+        id="create-network-collapse"
+    ),
 
-        html.Br(),
+    # Memory Store
+    dcc.Store(id='memory-output'),
 
-        # Top button & controls
-        html.Div(
-            style={'position': 'relative', 'left': '7px'},
-            children=[
-                # Set Batfish Host
-                html.Div(
-                    [
-                        html.Button(
-                            "Set Batfish Host",
-                            id="set-batfish-host-button",
-                            className="main_page_button",
-                        )
-                    ],
-                    className="main_page_button_div",
-                ),
+    # Tabs
+    html.Div(
+        style={'position': 'relative', 'left': '10px', 'display': 'flex'},
+        children=[
+            html.Div(
+                style=dict(width="1000px", flex="1"),
+                children=[
+                    dcc.Tabs(id='main-page-tabs', value='layer3',
+                             children=[
+                                 dcc.Tab(selected_style=main_page_graph_tab_selected,
+                                         className='main-page-graph-tab', id={'type': 'main_tabs', 'index': 0},
+                                         label='Layer 3', value='layer3'),
+                                 dcc.Tab(selected_style=main_page_graph_tab_selected,
+                                         className='main-page-graph-tab', id={'type': 'main_tabs', 'index': 1},
+                                         label='OSPF', value='ospf'),
+                                 dcc.Tab(selected_style=main_page_graph_tab_selected,
+                                         className='main-page-graph-tab', id={'type': 'main_tabs', 'index': 2},
+                                         label='BGP', value='bgp'),
+                                 dcc.Tab(selected_style=main_page_graph_tab_selected,
+                                         className='main-page-graph-tab', id={'type': 'main_tabs', 'index': 3},
+                                         label='Trace Route', value='traceroute'),
+                                 dcc.Tab(selected_style=main_page_graph_tab_selected,
+                                         className='main-page-graph-tab', id={'type': 'main_tabs', 'index': 4},
+                                         label='All Things ACL', value='all_things_acl'),
+                             ]),
+                    html.Div(id="main-page-tabs-content"),
 
-                # Create/Delete Network (open collapse)
-                html.Div(
-                    [
-                        html.Button(
-                            "Create/Delete Network",
-                            id="create-network-button",
-                            className="main_page_button",
-                        )
-                    ],
-                    className="main_page_button_div",
-                ),
+                    # Cytoscape
+                    cyto.Cytoscape(id='cytoscape', elements=[], style={'width': '100%', 'height': '600px'}),
+                ]
+            ),
+        ]
+    ),
 
-                # Create/Delete Snapshot (open modal)
-                html.Div(
-                    [
-                        html.Button(
-                            "Create/Delete Snapshot",
-                            id="create-snapshot-button",
-                            className="main_page_button",
-                        )
-                    ],
-                    className="main_page_button_div",
-                ),
+    # Graph Layout Dropdown (필수 id 추가)
+    html.Div(id='graph_layout_options', style={'position': 'relative', 'left': '10px', 'display': 'none'},
+             children=[
+                 dcc.Dropdown(
+                     id='select-graph-roots',  # 기존 콜백에서 필요
+                     value=None,
+                     clearable=False,
+                     style=dict(flex='1', verticalAlign="middle", width="200px"),
+                     placeholder='Choose Graph Layout',
+                     options=[{'label': name.capitalize(), 'value': name} for name in
+                              ['grid', 'random', 'circle', 'cose', 'concentric', 'breadthfirst']]
+                 )
+             ]
+             ),
 
-                # (기존 빈 컨테이너) -> 네트워크 선택 드롭다운 탑재
-                html.Div(
-                    [
-                        dcc.Dropdown(
-                            id='select-network-button',   # 콜백에서 value 참조하는 ID
-                            options=[],                   # 콜백으로 채움
-                            placeholder='Select Network',
-                            value=None,
-                            style={'width': '220px'}
-                        )
-                    ],
-                    className="main_page_button_div",
-                    id='select-network-div',
-                ),
+    # Hidden Outputs
+    html.Div(
+        style={'position': 'relative', 'left': '10px'},
+        children=[
+            html.P(id='cytoscape-mouseoverNodeData-output', style={"display": "none"}),
+            html.P(id='cytoscape-mouseoverEdgeData-output', style={"display": "none"}),
+            html.P(id='batfish-host-output', style={"display": "none"}),
+            html.P(id='batfish-network-output', style={"display": "none"}),
+            html.P(id='num_of_traces', style={"display": "none"}),
+        ]
+    ),
 
-                # (기존 빈 컨테이너) -> 스냅샷 선택 드롭다운 탑재
-                html.Div(
-                    [
-                        dcc.Dropdown(
-                            id='select-snapshot-button',  # 콜백에서 value 참조하는 ID
-                            options=[],                   # 콜백으로 채움
-                            placeholder='Select Snapshot',
-                            value=None,
-                            style={'width': '220px'}
-                        )
-                    ],
-                    className="main_page_button_div",
-                    id='select-snapshot-div',
-                ),
-
-                # Ask a Question
-                html.Div(
-                    [
-                        html.Button(
-                            "Ask a Question",
-                            id="ask-question-button",
-                            className="main_page_button",
-                        )
-                    ],
-                    className="main_page_button_div",
-                ),
-
-                # Collapses
-                html.Div(
-                    style=dict(width="1000px"),
-                    children=[
-                        # Set Batfish Host collapse
-                        dbc.Collapse(
-                            dbc.Card(
-                                className='main_page_card',
-                                children=[
-                                    dbc.CardBody(
-                                        children=[
-                                            dbc.Form(
-                                                [
-                                                    dbc.FormGroup(
-                                                        [
-                                                            dbc.Input(
-                                                                id="batfish_host_input",
-                                                                value="",
-                                                                placeholder="Enter host",
-                                                                persistence=True,
-                                                            )
-                                                        ],
-                                                        className="mr-3",
-                                                    ),
-                                                    dbc.Button(
-                                                        "Submit",
-                                                        id="set_batfish_host_submit_button",
-                                                        color="dark",
-                                                        outline=True,
-                                                        size="sm",
-                                                        style=dict(height="25px"),
-                                                    ),
-                                                ],
-                                                inline=True,
-                                            )
-                                        ]
-                                    )
-                                ]
-                            ),
-                            id="batfishhost-collapse",
-                        ),
-
-                        # Create Network collapse (Submit 버튼 존재 필요)
-                        dbc.Collapse(
-                            dbc.Card(
-                                className='main_page_card',
-                                children=[
-                                    dbc.CardBody(
-                                        children=[
-                                            dbc.Input(
-                                                id="create_network_name",
-                                                placeholder="New network name",
-                                                value="",
-                                                style={'maxWidth': '300px', 'marginRight': '10px'}
-                                            ),
-                                            dbc.Button(
-                                                "Submit",
-                                                id="create_network_submit_button",  # 콜백에서 n_clicks 참조
-                                                color="primary",
-                                            ),
-                                        ]
-                                    )
-                                ],
-                            ),
-                            id="create-network-collapse",
-                        ),
-                    ],
-                ),
-
-                dcc.Store(id='memory-output'),
-            ],
-        ),
-
-        # Tabs + Graph
-        html.Div(
-            style={'position': 'relative', 'left': '10px', 'display': 'flex'},
-            children=[
-                html.Div(
-                    style=dict(width="1000px", flex="1"),
-                    children=[
-                        dcc.Tabs(
-                            id='main-page-tabs',
-                            value='layer3',
-                            children=[
-                                dcc.Tab(
-                                    selected_style=main_page_graph_tab_selected,
-                                    className='main-page-graph-tab',
-                                    id={'type': 'main_tabs', 'index': 0},
-                                    label='Layer 3',
-                                    value='layer3'
-                                ),
-                                dcc.Tab(
-                                    selected_style=main_page_graph_tab_selected,
-                                    className='main-page-graph-tab',
-                                    id={'type': 'main_tabs', 'index': 1},
-                                    label='OSPF',
-                                    value='ospf'
-                                ),
-                                dcc.Tab(
-                                    selected_style=main_page_graph_tab_selected,
-                                    className='main-page-graph-tab',
-                                    id={'type': 'main_tabs', 'index': 2},
-                                    label='BGP',
-                                    value='bgp'
-                                ),
-                                dcc.Tab(
-                                    selected_style=main_page_graph_tab_selected,
-                                    className='main-page-graph-tab',
-                                    id={'type': 'main_tabs', 'index': 3},
-                                    label='Trace Route',
-                                    value='traceroute'
-                                ),
-                                dcc.Tab(
-                                    selected_style=main_page_graph_tab_selected,
-                                    className='main-page-graph-tab',
-                                    id={'type': 'main_tabs', 'index': 4},
-                                    label='All Things ACL',
-                                    value='all_things_acl'
-                                ),
-                            ],
-                        ),
-                        html.Div(id="main-page-tabs-content"),
-
-                        # Cytoscape 그래프 (elements 콜백 에러 방지)
-                        cyto.Cytoscape(
-                            id='cytoscape',
-                            elements=[],  # 콜백으로 교체 예정
-                            layout={'name': 'grid'},
-                            style={'width': '100%', 'height': '600px'}
-                        ),
-                    ],
-                ),
-            ],
-        ),
-
-        # Graph layout options
-        html.Div(
-            id="graph_layout_options",
-            style={'position': 'relative', 'left': '10px', 'display': 'none'},
-            children=[
-                html.Div(
-                    dcc.Dropdown(
-                        id='dropdown-update-layout',
-                        value=None,
-                        clearable=False,
-                        style=dict(flex='1', verticalAlign="middle", width="200px"),
-                        placeholder='Choose Graph Layout',
-                        options=[
-                            {'label': name.capitalize(), 'value': name}
-                            for name in ['grid', 'random', 'circle', 'cose', 'concentric', 'breadthfirst']
-                        ]
-                    )
-                ),
-                html.Div(id='breadthfirst-roots', children=[]),
-            ]
-        ),
-
-        # Hidden outputs
-        html.Div(
-            style={'position': 'relative', 'left': '10px'},
-            children=[
-                html.P(id='cytoscape-mouseoverNodeData-output', style={"display": "none"}),
-                html.P(id='cytoscape-mouseoverEdgeData-output', style={"display": "none"}),
-                html.P(id='batfish-host-output', style={"display": "none"}),
-                html.P(id='batfish-network-output', style={"display": "none"}),
-                html.P(id='num_of_traces', style={"display": "none"}),
-            ]
-        ),
-
-        # Create Snapshot Modal
-        html.Div(
-            children=[
-                dbc.Modal(
-                    id="create_snapshot_modal",
-                    size="lg",
-                    children=[
-                        dbc.ModalHeader("Create Snapshot!"),
-                        dbc.ModalBody(
-                            children=[
-                                html.Div(style=dict(display="flex")),
-                                html.Div(
-                                    [],
-                                    id='select-network-snapshot-modal',
-                                    style=dict(flex="1")
-                                ),
-                                html.Div(
-                                    [],
-                                    id='delete-snapshot-dropdown-div',
-                                    style=dict(flex="1")
-                                ),
-
-                                html.Div(
-                                    [
-                                        dcc.Upload(
-                                            className='Snapshot_Upload',
-                                            id='device-configs-upload-data',
-                                            children=html.Div(
-                                                className='inside_drag_and_drop',
-                                                children=[
-                                                    html.P(
-                                                        className="upload_p",
-                                                        children=[
-                                                            html.H3("Device Configurations"),
-                                                            'Drag and Drop or ',
-                                                            html.A('Select Files')
-                                                        ],
-                                                    ),
-                                                ]
-                                            ),
-                                            multiple=True
-                                        ),
-                                        dcc.Upload(
-                                            className='Snapshot_Upload',
-                                            id='host-configs-upload-data',
-                                            children=html.Div(
-                                                className='inside_drag_and_drop',
-                                                children=[
-                                                    html.P(
-                                                        className="upload_p",
-                                                        children=[
-                                                            html.H3("Host Configurations"),
-                                                            'Drag and Drop or ',
-                                                            html.A('Select Files')
-                                                        ],
-                                                    ),
-                                                ]
-                                            ),
-                                            multiple=True
-                                        ),
-                                        dcc.Upload(
-                                            className='Snapshot_Upload',
-                                            id='iptables-configs-upload-data',
-                                            children=html.Div(
-                                                className='inside_drag_and_drop',
-                                                children=[
-                                                    html.P(
-                                                        className="upload_p",
-                                                        children=[
-                                                            html.H3("IP Table Configurations"),
-                                                            'Drag and Drop or ',
-                                                            html.A('Select Files')
-                                                        ],
-                                                    ),
-                                                ]
-                                            ),
-                                            multiple=True
-                                        ),
-                                        dcc.Upload(
-                                            className='Snapshot_Upload',
-                                            id='aws-configs-upload-data',
-                                            children=html.Div(
-                                                className='inside_drag_and_drop',
-                                                children=[
-                                                    html.P(
-                                                        className="upload_p",
-                                                        children=[
-                                                            html.H3("AWS Configurations"),
-                                                            'Drag and Drop or ',
-                                                            html.A('Select Files')
-                                                        ],
-                                                    ),
-                                                ]
-                                            ),
-                                            multiple=True
-                                        ),
-                                        dcc.Upload(
-                                            className='Snapshot_Upload',
-                                            id='misc-configs-upload-data',
-                                            children=html.Div(
-                                                className='inside_drag_and_drop',
-                                                children=[
-                                                    html.P(
-                                                        className="upload_p",
-                                                        children=[
-                                                            html.H3("Miscellaneous Configurations"),
-                                                            'Drag and Drop or ',
-                                                            html.A('Select Files')
-                                                        ],
-                                                    ),
-                                                ]
-                                            ),
-                                            multiple=True
-                                        ),
-                                        html.Div(id='output-data-upload'),
-                                    ]
-                                ),
-                            ]
-                        ),
-                        dbc.ModalFooter(
-                            children=[
-                                html.A(
-                                    "How to format your configurations!",
-                                    href="https://pybatfish.readthedocs.io/en/latest/formats.html"
-                                ),
-                                dbc.FormGroup(
-                                    [
-                                        dbc.Input(
-                                            id="create-snapshot-name",
-                                            value="",
-                                            placeholder="New Snapshot Name"
-                                        ),
-                                        dbc.FormFeedback(
-                                            "Please enter a name for the snapshot",
-                                            valid=False,
-                                        ),
-                                    ],
-                                    className="mr-3",
-                                ),
-                                dbc.Button(
-                                    "Submit",
-                                    id="create_snapshot_submit_button",
-                                    color="dark",
-                                    outline=True,
-                                    style=dict(height="25px"),
-                                ),
-                            ]
-                        ),
-                    ]
-                )
-            ]
-        ),
-
-        # Ask a Question Modal
-        html.Div(
-            children=[
-                dbc.Modal(
-                    id="ask-a-question-modal",
-                    size="xl",
-                    scrollable=True,
-                    children=[
-                        dbc.ModalHeader("Ask a Question!"),
-                        dbc.ModalBody(
-                            children=[
-                                html.Div(
-                                    [
-                                        dcc.Dropdown(
-                                            id="select-question-button",
-                                            placeholder='Select Question',
-                                            style={'margin': '5px', 'width': '150px'},
-                                            options=[],
-                                            value=None
-                                        ),
-                                    ],
-                                    id='ask-a-question-dropdown-modal',
-                                    style=dict(position="relative", height="100px", margin_top="10px"),
-                                ),
-                                html.Div(id='question-info'),
-                                html.Div(id='ask-a-question-table'),
-                            ]
-                        ),
-                    ]
-                )
-            ]
-        ),
-
-        # Change Configuration Modal
-        html.Div(
-            children=[
-                dbc.Modal(
-                    id="change_configuration_modal",
-                    size="xl",
-                    scrollable=True,
-                    children=[
-                        dbc.ModalHeader("Change Configuration!"),
-                        dbc.ModalBody(
-                            children=[
-                                html.Div(
-                                    [
-                                        dcc.Textarea(
-                                            id='change_configuration_textarea',
-                                            value='',
-                                            style={'width': '100%', 'height': '500px'},
-                                        )
-                                    ]
-                                ),
-                                html.Button('Submit', id='change_configuration_submit'),
-                            ]
-                        ),
-                    ]
-                )
-            ]
-        ),
-
-        # ACL Configuration Modal
-        html.Div(
-            children=[
-                dbc.Modal(
-                    id="acl_configuration_modal",
-                    size="xl",
-                    scrollable=True,
-                    children=[
-                        dbc.ModalHeader("Get Configuration!"),
-                        dbc.ModalBody(
-                            children=[
-                                dbc.InputGroup(
-                                    [
-                                        dbc.Select(
-                                            id="acl_choose_node",
-                                            options='',
-                                            value='',
-                                        ),
-                                    ]
-                                ),
-                                html.Div(
-                                    [
-                                        dcc.Textarea(
-                                            id='acl_configuration_textarea',
-                                            value='',
-                                            style={'width': '100%', 'height': '500px'},
-                                        )
-                                    ]
-                                ),
-                            ]
-                        ),
-                    ]
-                )
-            ]
-        ),
-
-        # ★ 모달 내부에서도 네트워크 선택을 요구하는 콜백 대비 (에러 로그에 있던 ID)
-        dcc.Dropdown(
-            id='modal-select-network-button',
-            options=[],
-            placeholder='Select Network (Modal)',
-            value=None,
-            style={'display': 'none'}  # 필요 시 콜백에서 style 변경
-        ),
-    ]
-)
-
+    # Modal placeholders (기존 콜백 id 유지)
+    html.Div(id='modal-select-network-button', style={'display': 'none'}),
+])
